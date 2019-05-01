@@ -1,6 +1,7 @@
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -8,10 +9,17 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 
+/**
+ * GeoJSON parser
+ */
 public class Parser {
+
+    final private static int LATITUDE = 0;
+    final private static int LONGITUDE = 1;
+
     public static void main(String[] args) {
 
-        //JSON parser object pour lire le fichier
+        /* JSON parser objet pour lire le fichier */
         JSONParser jsonParser = new JSONParser();
 
         try (FileReader reader = new FileReader("src/main/resources/countries.geojson")) {
@@ -25,75 +33,114 @@ public class Parser {
             JSONArray features = (JSONArray) jsonObject.get("features");
 
             /* Pour chaque feature... */
-            for (int iFeature = 0; iFeature < features.size(); ++iFeature) {
+            List<Country> countries = new ArrayList<>();
+            for (Object feature : features) {
 
-                JSONObject feature = (JSONObject) features.get(iFeature);
+                JSONObject jsonFeature = (JSONObject) feature;
 
                 /* Récupération des properties */
-                JSONObject properties = (JSONObject) feature.get("properties");
-                String admin = (String) properties.get("ADMIN");
-                String iso = (String) properties.get("ISO_A3");
+                JSONObject properties = (JSONObject) jsonFeature.get("properties");
+                String countryName = (String) properties.get("ADMIN");
+                String countryShortName = (String) properties.get("ISO_A3");
 
                 /* Récupération de geometry */
-                JSONObject geometry = (JSONObject) feature.get("geometry");
-                String type = (String) geometry.get("type");
+                JSONObject geometry = (JSONObject) jsonFeature.get("geometry");
+                String polyType = (String) geometry.get("type");
 
                 /* Récupération des coordinates */
                 JSONArray coordinates = (JSONArray) geometry.get("coordinates");
 
-                /* Pour chaque coordonnée... */
-                for (int iCoordinate = 0; iCoordinate < coordinates.size(); ++iCoordinate) {
+                /* Pour chaque paire de coordonnées... */
+                List<List<StringPair>> coordinatesListList = new ArrayList<>();
 
-                    JSONArray coordinate = (JSONArray) coordinates.get(iCoordinate);
-                    JSONArray coordArray = coordinate;
-
-                    if (type.equals("Polygon")) {
-                        parsePolygon(coordArray);
-                    } else if (type.equals("MultiPolygon")) {
-                        parseMultiPolygon(coordArray);
-                    }
-
+                /* Traitement différent selon si il y a une ou plusieurs listes de coordonnées */
+                if (polyType.equals("Polygon")) {
+                    coordinatesListList = parsePolygon(coordinates);
+                } else if (polyType.equals("MultiPolygon")) {
+                    coordinatesListList = parseMultiPolygon(coordinates);
                 }
-            }
-        }
 
-        catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        catch (ParseException e) {
+                /* Création du pays et affichage console*/
+                Country country = new Country(countryName, countryShortName, coordinatesListList);
+                countries.add(country);
+                System.out.println(country);
+            }
+
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
 
-    private static void parsePolygon(JSONArray polygonObj) {
+    /**
+     * Traite un pays ne possédant qu'une liste de coordonnées (polygone)
+     *
+     * @param coordinatesPair la liste des paires de coordonnées
+     * @return une liste de listes de coordonnées
+     */
+    private static List<List<StringPair>> parsePolygon(JSONArray coordinatesPair) {
 
-        for (Object polyObj : polygonObj) {
-            JSONArray lastArray = (JSONArray) polyObj;
-            for (int i = 0; i < lastArray.size(); ++i) {
-                double c = (double) lastArray.get(i);
-                System.out.println(c);
-            }
+        /* Préparation des listes */
+        List<StringPair> coordinatesList = new ArrayList<>();
+        List<List<StringPair>> coordinatesListList = new ArrayList<>();
+
+        /* Passage du premier niveau, invariable */
+        JSONArray firstLevelArray = (JSONArray) coordinatesPair.get(0);
+
+        /* Itération sur le second niveau contenant les coordonnées */
+        for (Object coordinate : firstLevelArray) {
+            JSONArray secondLevelArray = (JSONArray) coordinate;
+
+            /* Création de la paire de coordonnées */
+            StringPair pair = new StringPair(
+                    Double.toString((double) secondLevelArray.get(LATITUDE)),
+                    Double.toString((double) secondLevelArray.get(LONGITUDE)));
+
+            /* Ajout dans la liste */
+            coordinatesList.add(pair);
         }
+
+        coordinatesListList.add(coordinatesList);
+
+        return coordinatesListList;
     }
 
-    private static void parseMultiPolygon(JSONArray polygonObj) {
+    /**
+     * Traite un pays possédant plusieurs listes de coordonnées (multipolygone)
+     *
+     * @param coordinatesPair la liste des paires de coordonnées
+     * @return une liste de listes de coordonnées
+     */
+    private static List<List<StringPair>> parseMultiPolygon(JSONArray coordinatesPair) {
 
-        for (Object polyObj : polygonObj) {
-            JSONArray beforeArray = (JSONArray) polyObj;
+        /* Préparation de la liste de liste */
+        List<List<StringPair>> coordinatesListList = new ArrayList<>();
 
-            for (Object multPolyObj : beforeArray) {
-                JSONArray lastArray = (JSONArray) multPolyObj;
+        /* Itération sur le premier niveau */
+        for (Object cp : coordinatesPair) {
 
-                //double c1 = (double) lastArray.get(0);
+            JSONArray firstLevelArray = (JSONArray) cp;
+            /* Passage au second niveau, invariable */
+            JSONArray secondLevelArray = (JSONArray) firstLevelArray.get(0);
 
-                for (int i = 0; i < lastArray.size(); ++i) {
-                    double c = (double) lastArray.get(i);
-                    System.out.println(c);
-                }
+            List<StringPair> coordinatesList = new ArrayList<>();
+
+            /* Itération sur le niveau trois contenant les coordonnées */
+            for (Object coordinatePair : secondLevelArray) {
+                JSONArray jsonArray = (JSONArray) coordinatePair;
+
+                /* Création de la paire de coordonnées */
+                StringPair pair = new StringPair(
+                        Double.toString((double) jsonArray.get(LATITUDE)),
+                        Double.toString((double) jsonArray.get(LONGITUDE)));
+
+                /* Ajout dans la liste */
+                coordinatesList.add(pair);
             }
+
+            /* Ajout dans la liste de liste */
+            coordinatesListList.add(coordinatesList);
         }
+
+        return coordinatesListList;
     }
 }
