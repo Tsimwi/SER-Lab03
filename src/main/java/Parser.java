@@ -23,8 +23,38 @@ public class Parser {
 
             /* Récupération des features */
             JSONArray features = (JSONArray) jsonObject.get("features");
-            features.forEach(featureObj->parseFeatures((JSONObject)featureObj));
 
+            /* Pour chaque feature... */
+            for (int iFeature = 0; iFeature < features.size(); ++iFeature) {
+
+                JSONObject feature = (JSONObject) features.get(iFeature);
+
+                /* Récupération des properties */
+                JSONObject properties = (JSONObject) feature.get("properties");
+                String admin = (String) properties.get("ADMIN");
+                String iso = (String) properties.get("ISO_A3");
+
+                /* Récupération de geometry */
+                JSONObject geometry = (JSONObject) feature.get("geometry");
+                String type = (String) geometry.get("type");
+
+                /* Récupération des coordinates */
+                JSONArray coordinates = (JSONArray) geometry.get("coordinates");
+
+                /* Pour chaque coordonnée... */
+                for (int iCoordinate = 0; iCoordinate < coordinates.size(); ++iCoordinate) {
+
+                    JSONArray coordinate = (JSONArray) coordinates.get(iCoordinate);
+                    JSONArray coordArray = coordinate;
+
+                    if (type.equals("Polygon")) {
+                        parsePolygon(coordArray);
+                    } else if (type.equals("MultiPolygon")) {
+                        parseMultiPolygon(coordArray);
+                    }
+
+                }
+            }
         }
 
         catch (FileNotFoundException e) {
@@ -35,45 +65,6 @@ public class Parser {
         }
         catch (ParseException e) {
             e.printStackTrace();
-        }
-    }
-
-    private static void parseFeatures(JSONObject featureObj) {
-
-        // Obtenir l'objet properties dans la liste
-        JSONObject properties = (JSONObject) featureObj.get("properties");
-        parseProperties(properties);
-
-        // Obtenir l'objet properties dans la liste
-        JSONObject geometry = (JSONObject) featureObj.get("geometry");
-        parseGeometry(geometry);
-    }
-
-    private static void parseProperties(JSONObject propObj) {
-
-        // Obtenir les détails
-        String admin = (String) propObj.get("ADMIN");
-        String iso = (String) propObj.get("ISO_A3");
-    }
-
-    private static void parseGeometry(JSONObject geometryObj) {
-
-        // Obtenir les détails
-        String type = (String) geometryObj.get("type");
-
-        /* Récupération des coordinates */
-        JSONArray coordinates = (JSONArray) geometryObj.get("coordinates");
-        coordinates.forEach(coordObj->parseCoordinates((JSONArray) coordObj, type));
-    }
-
-    private static void parseCoordinates(JSONArray coordinatesObj, String type) {
-
-        JSONArray jsonArray = (JSONArray) coordinatesObj;
-
-        if (type.equals("Polygon")) {
-            parsePolygon(jsonArray);
-        } else if (type.equals("MultiPolygon")) {
-            parseMultiPolygon(jsonArray);
         }
     }
 
