@@ -16,8 +16,9 @@ public class Parser {
 
     final private static int LATITUDE = 0;
     final private static int LONGITUDE = 1;
+    private List<Country> countries = new ArrayList<>();
 
-    public static void main(String[] args) {
+    public List<Country> parse() {
 
         /* JSON parser objet pour lire le fichier */
         JSONParser jsonParser = new JSONParser();
@@ -33,7 +34,7 @@ public class Parser {
             JSONArray features = (JSONArray) jsonObject.get("features");
 
             /* Pour chaque feature... */
-            List<Country> countries = new ArrayList<>();
+
             for (Object feature : features) {
 
                 JSONObject jsonFeature = (JSONObject) feature;
@@ -60,15 +61,17 @@ public class Parser {
                     coordinatesListList = parseMultiPolygon(coordinates);
                 }
 
-                /* Création du pays et affichage console*/
+                /* Création du pays et affichage console */
                 Country country = new Country(countryName, countryShortName, coordinatesListList);
                 countries.add(country);
-                System.out.println(country);
+                //System.out.println(country);
             }
 
         } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
+
+        return countries;
     }
 
     /**

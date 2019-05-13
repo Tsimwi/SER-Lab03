@@ -8,6 +8,11 @@ public class StringPair {
         this.secondCoordinate = second;
     }
 
+    @Override
+    public String toString() {
+        return firstCoordinate + "," +  secondCoordinate;
+    }
+
     String getFirstCoordinate() {
         return this.firstCoordinate;
     }
