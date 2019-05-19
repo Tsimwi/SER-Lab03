@@ -6,9 +6,8 @@ import org.jdom2.output.*;
 
 public class KMLWriter {
 
-    private static final String kmlFilePath = "src/newKMLfile.kml";
-
-    public static void main(String[] args) {
+    /* Sérialise une liste de pays et les stock dans un fichier KML */
+    public void writeCountriesToKml(List<Country> countries, String kmlToCreatePath){
         try {
             Element kml = new Element("kml");
             Document root = new Document(kml);
@@ -16,26 +15,32 @@ public class KMLWriter {
 
             Element document = new Element("Document");
             root.getRootElement().addContent(document);
-            Parser parser = new Parser();
-            List<Country> countries = parser.parse();
+
             Element placemark;
+            Element name;
+            Element style;
+            Element lineStyle;
+            Element color;
+            Element polyStyle;
+            Element fill;
+            Element multiGeometry = null;
 
             for(Country country : countries) {
                 placemark = new Element("Placemark");
-                Element name = new Element("Name").setText(country.getName());
+                name = new Element("name").setText(country.getName());
                 placemark.addContent(name);
-                Element style = new Element("Style");
+                style = new Element("Style");
                 placemark.addContent(style);
-                Element lineStyle = new Element("LineStyle");
+                lineStyle = new Element("LineStyle");
                 style.addContent(lineStyle);
-                Element color = new Element("Color").setText("ffffffff");
+                color = new Element("Color").setText("ffffffff");
                 lineStyle.addContent(color);
-                Element polyStyle = new Element("LineStyle");
+                polyStyle = new Element("PolyStyle");
                 style.addContent(polyStyle);
-                Element fill = new Element("Fill").setText("0");
+                fill = new Element("fill").setText("0");
                 polyStyle.addContent(fill);
-                Element multiGeometry = null;
 
+                /* Gestion des pays composés en plusieurs polygones */
                 if (country.getCoordinates().size() > 1) {
                     multiGeometry = new Element("Multigeometry");
                     placemark.addContent(multiGeometry);
@@ -44,16 +49,14 @@ public class KMLWriter {
                 for (List<StringPair> list : country.getCoordinates()) {
                     Element polygon = new Element("Polygon");
 
+                    /* Gestion des pays composés en plusieurs polygones*/
                     if (country.getCoordinates().size() > 1) {
                         multiGeometry.addContent(polygon);
                     } else {
                         placemark.addContent(polygon);
                     }
-                    /*
-                    Element temp = country.getCoordinates().size() > 1 ? new Element("Multigeometry") : polygon;
-                    placemark.addContent(temp);*/
 
-                    Element outerBoundaryIs = new Element("OuterBoundaryIs");
+                    Element outerBoundaryIs = new Element("outerBoundaryIs");
                     polygon.addContent(outerBoundaryIs);
                     Element linearRing = new Element("LinearRing");
                     outerBoundaryIs.addContent(linearRing);
@@ -63,19 +66,14 @@ public class KMLWriter {
                     }
                     Element coordinates = new Element("coordinates").setText(sb.toString());
                     linearRing.addContent(coordinates);
-
                 }
 
                 document.addContent(placemark);
-
-
-               // menuFichier.addContent(new Element("nom").setText("Fichier"))
             }
-
 
             XMLOutputter xmlOutputer = new XMLOutputter();
             xmlOutputer.setFormat(Format.getPrettyFormat());
-            xmlOutputer.output(root, new FileWriter(kmlFilePath));
+            xmlOutputer.output(root, new FileWriter(kmlToCreatePath));
 
         } catch (IOException e) {
             e.printStackTrace();

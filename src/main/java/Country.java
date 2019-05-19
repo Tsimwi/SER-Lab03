@@ -4,6 +4,8 @@ public class Country {
 
     private String name;
     private String abbreviation;
+    /* Stockage des coordonnées du pays, si le nombre d'éléments du premier niveau de liste est > 1, le pays est
+     * composé de plusieurs polygones */
     private List<List<StringPair>> coordinates;
 
     Country(String name, String abbreviation, List<List<StringPair>> coordinates) {
